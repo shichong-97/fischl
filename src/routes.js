@@ -30,6 +30,7 @@ import TableList from 'views/TableList/TableList.js'
 import Typography from 'views/Typography/Typography.js'
 import Icons from 'views/Icons/Icons.js'
 import Maps from 'views/Maps/Maps.js'
+import Planner from 'views/Planner/Planner.js'
 import NotificationsPage from 'views/Notifications/Notifications.js'
 
 const dashboardRoutes = [
@@ -44,44 +45,16 @@ const dashboardRoutes = [
     path: '/map',
     name: 'Map',
     icon: Map,
-    component: UserProfile,
-    layout: '/admin',
-  },
-  {
-    path: '/recommendations',
-    name: 'Recommendations',
-    icon: LightBulb,
-    component: Typography,
-    layout: '/admin',
-  },
-  {
-    path: '/contacts',
-    name: 'Contacts',
-    icon: People,
     component: Maps,
-    layout: '/admin',
-  },
-  {
-    path: '/agents',
-    name: 'Agents',
-    icon: Person,
-    component: NotificationsPage,
     layout: '/admin',
   },
   {
     path: '/planner',
     name: 'Planner',
     icon: 'content_paste',
-    component: DashboardPage,
+    component: Planner,
     layout: '/admin',
-  },
-  {
-    path: '/settings',
-    name: 'Settings',
-    icon: Gear,
-    component: DashboardPage,
-    layout: '/admin',
-  },
+  }
 ]
 
 export default dashboardRoutes
