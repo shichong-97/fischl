@@ -97,7 +97,7 @@ body {
 }
 
 .navigation-example {
-  background-image: url("../img/bg.jpg");
+  background-image: url('../img/bg.jpg');
   background-position: center center;
   background-size: cover;
   margin-top: 0;
@@ -241,7 +241,7 @@ body {
 }
 
 .separator {
-  content: "Separator";
+  content: 'Separator';
   color: #ffffff;
   display: block;
   width: 100%;
@@ -440,7 +440,7 @@ body {
   display: block;
   left: 0;
   top: 0;
-  content: "";
+  content: '';
 }
 .header-filter::before {
   background-color: rgba(0, 0, 0, 0.5);
@@ -453,7 +453,7 @@ body {
 
 .page-header .title {
   font-weight: 700;
-  font-family: "Roboto Slab", "Times New Roman", serif;
+  font-family: 'Roboto Slab', 'Times New Roman', serif;
   line-height: 1.15em;
   color: #fff;
 }
