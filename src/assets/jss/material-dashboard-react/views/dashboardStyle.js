@@ -58,6 +58,7 @@ const dashboardStyle = {
     marginBottom: '3px',
     textDecoration: 'none',
     '& small': {
+      fontSize: '14px',
       color: grayColor[1],
       fontWeight: '400',
       lineHeight: '1',

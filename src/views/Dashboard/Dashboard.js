@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 // react plugin for creating charts
 import ChartistGraph from 'react-chartist'
 // @material-ui/core
@@ -48,6 +49,65 @@ const useStyles = makeStyles(styles)
 
 export default function Dashboard() {
   const classes = useStyles()
+  const [harvestable, setHarvestable] = useState(0)
+  const [inUse, setInUse] = useState(0)
+  const [planned, setPlanned] = useState(0)
+  const [open, setOpen] = useState(0)
+
+  const precedence = (event) => {
+    if (
+      Date.parse(event.startDate) >= Date.now() &&
+      Date.parse(event.endDate) < Date.now()
+    )
+      return 1
+    if (Date.parse(event.endDate) < Date.now()) return 2
+    else return 3
+  }
+
+  useEffect(() => {
+    const geoDataReq = axios.get('/api/getAllGeodata')
+    const eventDataReq = axios.get('/api/getAllEvents')
+    axios.all([geoDataReq, eventDataReq]).then(
+      axios.spread((...responses) => {
+        const geoAreas = responses[0].data
+        const events = responses[1].data.sort(
+          (a, b) => precedence(a) - precedence(b)
+        )
+
+        const areasAccountedFor = []
+        for (const event of events) {
+          if (areasAccountedFor.indexOf(event.areaId) != -1) continue
+
+          areasAccountedFor.push(event.areaId)
+          if (Date.parse(event.endDate) <= Date.now()) {
+            setHarvestable(
+              (harvestable) =>
+                harvestable +
+                geoAreas.find((area) => area.id === event.areaId).area
+            )
+          } else if (
+            Date.parse(event.startDate) <= Date.now() &&
+            Date.parse(event.endDate) > Date.now()
+          ) {
+            setInUse(
+              (inUse) =>
+                inUse + geoAreas.find((area) => area.id === event.areaId).area
+            )
+          } else
+            setPlanned(
+              (planned) =>
+                planned + geoAreas.find((area) => area.id === event.areaId).area
+            )
+        }
+
+        for (const area of geoAreas.filter(
+          (area) => areasAccountedFor.indexOf(area.id) == -1
+        )) {
+          setOpen((open) => open + area.area)
+        }
+      })
+    )
+  }, [])
   return (
     <div>
       <GridContainer>
@@ -60,7 +120,9 @@ export default function Dashboard() {
                 </Icon>
               </CardIcon>
               <p className={classes.cardCategory}>Harvestable</p>
-              <h3 className={classes.cardTitle}>33</h3>
+              <h3 className={classes.cardTitle}>
+                {harvestable} <small>acres</small>
+              </h3>
             </CardHeader>
             <CardFooter stats>
               <div className={classes.stats}>
@@ -79,7 +141,9 @@ export default function Dashboard() {
                 </Icon>
               </CardIcon>
               <p className={classes.cardCategory}>In Use</p>
-              <h3 className={classes.cardTitle}>290</h3>
+              <h3 className={classes.cardTitle}>
+                {inUse} <small>acres</small>
+              </h3>
             </CardHeader>
             <CardFooter stats>
               <div className={classes.stats}>
@@ -98,7 +162,9 @@ export default function Dashboard() {
                 </Icon>
               </CardIcon>
               <p className={classes.cardCategory}>Planned</p>
-              <h3 className={classes.cardTitle}>33</h3>
+              <h3 className={classes.cardTitle}>
+                {planned} <small>acres</small>
+              </h3>
             </CardHeader>
             <CardFooter stats>
               <div className={classes.stats}>
@@ -117,7 +183,9 @@ export default function Dashboard() {
                 </Icon>
               </CardIcon>
               <p className={classes.cardCategory}>Open</p>
-              <h3 className={classes.cardTitle}>8</h3>
+              <h3 className={classes.cardTitle}>
+                {open} <small>acres</small>
+              </h3>
             </CardHeader>
             <CardFooter stats>
               <div className={classes.stats}>
@@ -129,81 +197,7 @@ export default function Dashboard() {
         </GridItem>
       </GridContainer>
       <GridContainer>
-        <GridItem xs={12} sm={12} md={4}>
-          <Card chart>
-            <CardHeader color="success">
-              <ChartistGraph
-                className="ct-chart"
-                data={dailySalesChart.data}
-                type="Line"
-                options={dailySalesChart.options}
-                listener={dailySalesChart.animation}
-              />
-            </CardHeader>
-            <CardBody>
-              <h4 className={classes.cardTitle}>Daily Sales</h4>
-              <p className={classes.cardCategory}>
-                <span className={classes.successText}>
-                  <ArrowUpward className={classes.upArrowCardCategory} /> 55%
-                </span>{' '}
-                increase in today sales.
-              </p>
-            </CardBody>
-            <CardFooter chart>
-              <div className={classes.stats}>
-                <AccessTime /> updated 4 minutes ago
-              </div>
-            </CardFooter>
-          </Card>
-        </GridItem>
-        <GridItem xs={12} sm={12} md={4}>
-          <Card chart>
-            <CardHeader color="warning">
-              <ChartistGraph
-                className="ct-chart"
-                data={emailsSubscriptionChart.data}
-                type="Bar"
-                options={emailsSubscriptionChart.options}
-                responsiveOptions={emailsSubscriptionChart.responsiveOptions}
-                listener={emailsSubscriptionChart.animation}
-              />
-            </CardHeader>
-            <CardBody>
-              <h4 className={classes.cardTitle}>Email Subscriptions</h4>
-              <p className={classes.cardCategory}>Last Campaign Performance</p>
-            </CardBody>
-            <CardFooter chart>
-              <div className={classes.stats}>
-                <AccessTime /> campaign sent 2 days ago
-              </div>
-            </CardFooter>
-          </Card>
-        </GridItem>
-        <GridItem xs={12} sm={12} md={4}>
-          <Card chart>
-            <CardHeader color="danger">
-              <ChartistGraph
-                className="ct-chart"
-                data={completedTasksChart.data}
-                type="Line"
-                options={completedTasksChart.options}
-                listener={completedTasksChart.animation}
-              />
-            </CardHeader>
-            <CardBody>
-              <h4 className={classes.cardTitle}>Completed Tasks</h4>
-              <p className={classes.cardCategory}>Last Campaign Performance</p>
-            </CardBody>
-            <CardFooter chart>
-              <div className={classes.stats}>
-                <AccessTime /> campaign sent 2 days ago
-              </div>
-            </CardFooter>
-          </Card>
-        </GridItem>
-      </GridContainer>
-      <GridContainer>
-        <GridItem xs={12} sm={12} md={6}>
+        <GridItem xs={12} sm={12} md={12}>
           <CustomTabs
             title="Tasks:"
             headerColor="primary"
@@ -244,7 +238,9 @@ export default function Dashboard() {
             ]}
           />
         </GridItem>
-        <GridItem xs={12} sm={12} md={6}>
+      </GridContainer>
+      <GridContainer>
+        <GridItem xs={12} sm={12} md={12}>
           <Card>
             <CardHeader color="warning">
               <h4 className={classes.cardTitleWhite}>Employees Stats</h4>

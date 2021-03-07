@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 // react plugin for creating charts
 import { DayPilot, DayPilotScheduler } from 'daypilot-pro-react'
 // @material-ui/core
@@ -10,36 +11,65 @@ import AddCropDialog from './AddCropDialog'
 import styles from 'assets/jss/material-dashboard-react/views/plannerStyle.js'
 
 const useStyles = makeStyles(styles)
-const crops = [
-  {
-    name: 'Dent Corn',
-    daysToHarvest: 18,
-    goodSeasons: ['Summer'],
-  },
-  {
-    name: 'Soybean',
-    daysToHarvest: 20,
-    goodSeasons: ['Winter'],
-  },
-  {
-    name: 'Alfalfa',
-    daysToHarvest: 16,
-    goodSeasons: ['Spring'],
-  },
-]
-
-const generateCropList = () =>
-  crops.map((crop) => ({
-    id: DayPilot.guid(),
-    name: crop.name,
-    duration: crop.daysToHarvest,
-  }))
 
 export default function Dashboard() {
   const classes = useStyles()
 
   const [modalOpen, setModalOpen] = useState(false)
-  const [cropList, setCropList] = useState(generateCropList())
+  const [geospatial, setGeospatial] = useState([])
+  const [crops, setCrops] = useState([])
+  const generateCropList = () =>
+    crops.map((crop) => ({
+      id: DayPilot.guid() + '_' + crop.id,
+      name: crop.name,
+      duration: crop.daysToHarvest,
+    }))
+  const [cropList, setCropList] = useState([])
+  const [events, setEvents] = useState([])
+
+  useEffect(() => {
+    const geoDataReq = axios.get('/api/getAllGeodata')
+    const cropDataReq = axios.get('/api/getAllCrops')
+    axios.all([geoDataReq, cropDataReq]).then(
+      axios.spread((...responses) => {
+        const responseOne = responses[0]
+        const responseTwo = responses[1]
+        setGeospatial(
+          responseOne.data.sort((a, b) => {
+            if (a.name < b.name) {
+              return -1
+            }
+            if (a.name > b.name) {
+              return 1
+            }
+            return 0
+          })
+        )
+        setCrops(
+          responseTwo.data.map(({ id, name, duration, seasons }) => ({
+            id,
+            name,
+            daysToHarvest: duration,
+            goodSeasons: seasons,
+          }))
+        )
+
+        axios.get('/api/getAllEvents').then((response) => {
+          setEvents(
+            response.data.map(({ id, areaId, cropId, startDate, endDate }) => ({
+              id,
+              areaId,
+              cropId,
+              startDate,
+              endDate,
+            }))
+          )
+        })
+      })
+    )
+  }, [])
+
+  useEffect(() => setCropList(generateCropList()), [crops])
 
   const renderCropList = () => {
     return (
@@ -55,9 +85,66 @@ export default function Dashboard() {
     )
   }
 
-  const addCrop = (cropData) => {
-    crops.push(cropData)
-    setCropList(generateCropList())
+  const addCrop = ({ name, daysToHarvest, goodSeasons }) => {
+    axios.post('/api/addNewCrop', {
+      id: crops.length,
+      name: name,
+      duration: daysToHarvest,
+      seasons: goodSeasons,
+    })
+    crops.push({
+      id: crops.length,
+      name,
+      daysToHarvest,
+      goodSeasons,
+    })
+    setCrops(crops.slice())
+  }
+
+  const addOrEditEvent = (id, areaId, cropId, startDate, endDate, create) => {
+    if (create) {
+      axios.post('/api/addNewEvent', {
+        id,
+        areaId,
+        cropId,
+        startDate,
+        endDate,
+      })
+      events.push({
+        id,
+        areaId,
+        cropId,
+        startDate,
+        endDate,
+      })
+    } else {
+      events.splice(
+        events.findIndex((event) => event.id === id),
+        1
+      )
+      axios.post('/api/editEvent', {
+        id,
+        areaId,
+        cropId,
+        startDate,
+        endDate,
+      })
+      events.push({
+        id,
+        areaId,
+        cropId,
+        startDate,
+        endDate,
+      })
+    }
+  }
+
+  const deleteEvent = (id) => {
+    axios.delete(`/api/deleteEvent/${id}`)
+    events.splice(
+      events.findIndex((event) => event.id === id),
+      1
+    )
   }
 
   return (
@@ -93,15 +180,29 @@ export default function Dashboard() {
         days={365}
         scale={'Day'}
         timeHeaders={[{ groupBy: 'Month' }, { groupBy: 'Day', format: 'd' }]}
-        onEventMove={() => setCropList(generateCropList())}
-        resources={[
-          { name: 'A0-C7', id: 'A0-C7' },
-          { name: 'C8-D1', id: 'C8-D1' },
-          { name: 'D2-D7', id: 'D2-D8' },
-          { name: 'D8-E2', id: 'D8-E2' },
-          { name: 'E3-E6', id: 'E3-E6' },
-          { name: 'E7-F4', id: 'E7-F4' },
-        ]}
+        onEventMove={(event) => {
+          setCropList(generateCropList())
+          addOrEditEvent(
+            event.e.data.id.slice(0, event.e.data.id.indexOf('_')),
+            event.newResource,
+            parseInt(event.e.data.id.slice(event.e.data.id.indexOf('_') + 1)),
+            event.newStart.value,
+            event.newEnd.value,
+            event.external
+          )
+        }}
+        resources={geospatial.map((g) => ({ name: g.name, id: g.id }))}
+        events={events.map((event) => ({
+          id: event.id + '_' + event.cropId,
+          text: crops.filter((crop) => crop.id === event.cropId)[0]?.name,
+          start: event.startDate,
+          end: event.endDate,
+          resource: event.areaId,
+        }))}
+        eventDeleteHandling="Update"
+        onEventDelete={(event) =>
+          deleteEvent(event.e.data.id.slice(0, event.e.data.id.indexOf('_')))
+        }
       />
     </div>
   )

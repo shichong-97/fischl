@@ -11,11 +11,22 @@
     "@types/node": "^14.14.31",
     "@types/react": "^17.0.2",
     "@types/react-dom": "^17.0.1",
+    "axios": "^0.21.1",
+    "body-parser": "^1.17.2",
+    "bulma": "^0.5.0",
     "chartist": "0.10.1",
     "classnames": "2.2.6",
+    "cookie-parser": "^1.4.3",
     "daypilot-pro-react": "https://npm.daypilot.org/daypilot-pro-react/trial/2020.4.4807.tar.gz",
+    "debug": "^3.0.0",
     "dotenv": "^8.2.0",
+    "eslint-config-airbnb": "^15.1.0",
+    "express": "^4.15.3",
     "history": "4.10.1",
+    "jade": "^1.11.0",
+    "mongodb": "^2.2.31",
+    "mongoose": "^4.11.5",
+    "morgan": "^1.8.2",
     "perfect-scrollbar": "1.5.0",
     "prop-types": "15.7.2",
     "react": "16.13.1",
@@ -29,7 +40,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && mv build server",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
     "install:clean": "rm -rf node_modules/ && rm -rf package-lock.json && npm install && npm start",
@@ -58,5 +69,6 @@
       "not op_mini all"
     ],
     "development": []
-  }
+  },
+  "proxy": "http://localhost:3001"
 }
